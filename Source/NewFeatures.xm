@@ -146,71 +146,35 @@ static BOOL YTMU(NSString *key) {
 
 
 
-
 @try {
     id playerResponse = [data valueForKey:@"playerResponse"];
     id playerData = [playerResponse valueForKey:@"playerData"];
-    id streamingData = [playerData valueForKey:@"streamingData"];
+    id playerConfig = [playerData valueForKey:@"playerConfig"];
 
-    NSLog(@"[YTMU-AUDIO] ===== AUDIO FORMATS =====");
+    NSLog(@"[YTMU-AUDIO] ===== PLAYER CONFIG =====");
 
-    if (streamingData) {
+    if (playerConfig) {
+        unsigned int count = 0;
 
-        id formats = [streamingData valueForKey:@"adaptiveFormatsArray"];
+        objc_property_t *properties =
+            class_copyPropertyList([playerConfig class], &count);
 
-        if ([formats isKindOfClass:[NSArray class]]) {
-
-            NSLog(@"[YTMU-AUDIO] Total formats: %lu",
-                  (unsigned long)[formats count]);
-
-            for (id format in formats) {
-
-                NSLog(@"[YTMU-AUDIO] --- FORMAT ---");
-
-                unsigned int count = 0;
-                objc_property_t *properties =
-                    class_copyPropertyList([format class], &count);
-
-                for (unsigned int i = 0; i < count; i++) {
-
-                    const char *name = property_getName(properties[i]);
-
-                    // Only inspect relevant properties.
-                    NSString *property =
-                        [NSString stringWithUTF8String:name];
-
-                    if ([property isEqualToString:@"itag"] ||
-                        [property isEqualToString:@"bitrate"] ||
-                        [property isEqualToString:@"mimeType"] ||
-                        [property isEqualToString:@"audioQuality"] ||
-                        [property isEqualToString:@"averageBitrate"]) {
-
-                        @try {
-                            id value = [format valueForKey:property];
-
-                            NSLog(@"[YTMU-AUDIO] %@ = %@",
-                                  property, value);
-                        }
-                        @catch (NSException *exception) {
-                            NSLog(@"[YTMU-AUDIO] Cannot read %@",
-                                  property);
-                        }
-                    }
-                }
-
-                free(properties);
-            }
-
-        } else {
-            NSLog(@"[YTMU-AUDIO] adaptiveFormatsArray unavailable");
+        for (unsigned int i = 0; i < count; i++) {
+            NSLog(@"[YTMU-AUDIO] CONFIG PROPERTY: %s",
+                  property_getName(properties[i]));
         }
+
+        free(properties);
+    } else {
+        NSLog(@"[YTMU-AUDIO] playerConfig is NIL");
     }
 
-    NSLog(@"[YTMU-AUDIO] ===== END AUDIO FORMATS =====");
+    NSLog(@"[YTMU-AUDIO] ===== END PLAYER CONFIG =====");
 }
 @catch (NSException *exception) {
-    NSLog(@"[YTMU-AUDIO] ERROR: %@", exception);
+    NSLog(@"[YTMU-AUDIO] CONFIG ERROR: %@", exception);
 }
+
 
 
     
