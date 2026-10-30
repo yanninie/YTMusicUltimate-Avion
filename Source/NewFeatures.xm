@@ -142,35 +142,61 @@ static BOOL YTMU(NSString *key) {
     %orig;
 
 
-    // Audio quality diagnostic
+
+
+
+    // Audio playback data structure diagnostic
     @try {
-        id response = self.playerResponse;
-        id playerData = [response valueForKey:@"playerData"];
-        id streamingData = [playerData valueForKey:@"streamingData"];
-        NSArray *formats = [streamingData valueForKey:@"adaptiveFormatsArray"];
+        NSLog(@"[YTMU-AUDIO] ===== DATA INSPECTION =====");
+        NSLog(@"[YTMU-AUDIO] data class: %@",
+              data ? NSStringFromClass([data class]) : @"nil");
 
-        NSLog(@"[YTMU-AUDIO] ===== AUDIO DIAGNOSTIC =====");
-        NSLog(@"[YTMU-AUDIO] Formats count: %lu",
-              (unsigned long)formats.count);
+        if (data) {
+            Class cls = [data class];
 
-        for (id format in formats) {
-            id mimeType = [format valueForKey:@"mimeType"];
-            id bitrate = [format valueForKey:@"bitrate"];
-            id itag = [format valueForKey:@"itag"];
-            id audioQuality = [format valueForKey:@"audioQuality"];
+            while (cls && cls != [NSObject class]) {
+                NSLog(@"[YTMU-AUDIO] CLASS: %@", NSStringFromClass(cls));
 
-            NSLog(@"[YTMU-AUDIO] mime=%@ | bitrate=%@ | itag=%@ | quality=%@",
-                  mimeType ?: @"?",
-                  bitrate ?: @"?",
-                  itag ?: @"?",
-                  audioQuality ?: @"?");
+                unsigned int propertyCount = 0;
+                objc_property_t *properties =
+                    class_copyPropertyList(cls, &propertyCount);
+
+                for (unsigned int i = 0; i < propertyCount; i++) {
+                    NSLog(@"[YTMU-AUDIO] PROPERTY: %s",
+                          property_getName(properties[i]));
+                }
+                free(properties);
+
+                unsigned int methodCount = 0;
+                Method *methods = class_copyMethodList(cls, &methodCount);
+
+                for (unsigned int i = 0; i < methodCount; i++) {
+                    SEL selector = method_getName(methods[i]);
+                    NSString *name = NSStringFromSelector(selector);
+
+                    if ([name localizedCaseInsensitiveContainsString:@"stream"] ||
+                        [name localizedCaseInsensitiveContainsString:@"format"] ||
+                        [name localizedCaseInsensitiveContainsString:@"player"] ||
+                        [name localizedCaseInsensitiveContainsString:@"audio"]) {
+                        NSLog(@"[YTMU-AUDIO] METHOD: %@", name);
+                    }
+                }
+                free(methods);
+
+                cls = class_getSuperclass(cls);
+            }
         }
 
-        NSLog(@"[YTMU-AUDIO] ===== END DIAGNOSTIC =====");
+        NSLog(@"[YTMU-AUDIO] ===== END INSPECTION =====");
     }
     @catch (NSException *exception) {
-        NSLog(@"[YTMU-AUDIO] Diagnostic error: %@", exception);
+        NSLog(@"[YTMU-AUDIO] Inspection error: %@", exception);
     }
+
+
+
+
+
 
 
 
