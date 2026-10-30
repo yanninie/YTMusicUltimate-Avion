@@ -146,40 +146,34 @@ static BOOL YTMU(NSString *key) {
 
 
 
-// Inspect playerResponse from playback data
 @try {
-    id playerResponse = [data valueForKey:@"playerResponse"];
+    id playerData = [response valueForKey:@"playerData"];
 
-    NSLog(@"[YTMU-AUDIO] ===== PLAYER RESPONSE =====");
-    NSLog(@"[YTMU-AUDIO] response class: %@",
-          playerResponse ? NSStringFromClass([playerResponse class]) : @"nil");
+    NSLog(@"[YTMU-AUDIO] ===== PLAYER DATA =====");
 
-    if (playerResponse) {
-        Class cls = [playerResponse class];
+    if (playerData) {
+        NSLog(@"[YTMU-AUDIO] playerData class: %@",
+              NSStringFromClass([playerData class]));
 
-        while (cls && cls != [NSObject class]) {
-            NSLog(@"[YTMU-AUDIO] CLASS: %@", NSStringFromClass(cls));
+        unsigned int count = 0;
+        objc_property_t *properties =
+            class_copyPropertyList([playerData class], &count);
 
-            unsigned int count = 0;
-            objc_property_t *properties = class_copyPropertyList(cls, &count);
-
-            for (unsigned int i = 0; i < count; i++) {
-                NSLog(@"[YTMU-AUDIO] PROPERTY: %s",
-                      property_getName(properties[i]));
-            }
-
-            free(properties);
-            cls = class_getSuperclass(cls);
+        for (unsigned int i = 0; i < count; i++) {
+            const char *name = property_getName(properties[i]);
+            NSLog(@"[YTMU-AUDIO] PLAYER DATA PROPERTY: %s", name);
         }
+
+        free(properties);
+    } else {
+        NSLog(@"[YTMU-AUDIO] playerData is NIL");
     }
 
-    NSLog(@"[YTMU-AUDIO] ===== END RESPONSE =====");
+    NSLog(@"[YTMU-AUDIO] ===== END PLAYER DATA =====");
 }
 @catch (NSException *exception) {
-    NSLog(@"[YTMU-AUDIO] Response error: %@", exception);
+    NSLog(@"[YTMU-AUDIO] playerData error: %@", exception);
 }
-
-
 
 
 
