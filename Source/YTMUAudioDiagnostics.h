@@ -1,16 +1,37 @@
+#ifndef YTMU_AUDIO_DIAGNOSTICS_H
+#define YTMU_AUDIO_DIAGNOSTICS_H
+
 #import <Foundation/Foundation.h>
 #import <objc/runtime.h>
+#import <os/log.h>
 
-static void YTMUDumpProperties(id object, NSString *path, NSInteger depth) {
-    if (!object || depth > 3) return;
+#define YTMU_AUDIO_LOG(fmt, ...) \
+    os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_DEFAULT, \
+                     "[YTMU-AUDIO] " fmt, ##__VA_ARGS__)
+
+static id YTMUSafeValue(id object, NSString *key) {
+    if (!object || !key) return nil;
+
+    @try {
+        return [object valueForKey:key];
+    }
+    @catch (NSException *exception) {
+        return nil;
+    }
+}
+
+static void YTMUDumpAudioProperties(id object,
+                                    NSString *path,
+                                    NSInteger depth) {
+    if (!object || depth > 2) return;
 
     unsigned int count = 0;
-    objc_property_t *properties = class_copyPropertyList([object class], &count);
+    objc_property_t *properties =
+        class_copyPropertyList([object class], &count);
 
     for (unsigned int i = 0; i < count; i++) {
-        const char *name = property_getName(properties[i]);
-        NSString *key = [NSString stringWithUTF8String:name];
-        NSString *fullPath = [path stringByAppendingFormat:@".%@", key];
+        NSString *key = [NSString stringWithUTF8String:
+                         property_getName(properties[i])];
 
         NSString *lower = [key lowercaseString];
 
@@ -19,39 +40,58 @@ static void YTMUDumpProperties(id object, NSString *path, NSInteger depth) {
             [lower containsString:@"quality"] ||
             [lower containsString:@"bitrate"] ||
             [lower containsString:@"codec"] ||
-            [lower containsString:@"premium"] ||
-            [lower containsString:@"stream"] ||
             [lower containsString:@"bandwidth"] ||
             [lower containsString:@"saver"] ||
-            [lower containsString:@"format"];
+            [lower containsString:@"format"] ||
+            [lower containsString:@"stream"];
 
-        @try {
-            id value = [object valueForKey:key];
+        if (!relevant) continue;
 
-            if (!value || value == [NSNull null]) continue;
+        id value = YTMUSafeValue(object, key);
 
-            if ([value isKindOfClass:[NSNumber class]]) {
-                if (relevant) {
-                    NSLog(@"[YTMU-AUDIO] %s = %s",
-                          [fullPath UTF8String],
-                          [[value description] UTF8String]);
-                }
-            } else if ([value isKindOfClass:[NSString class]]) {
-                if (relevant &&
-                    ![lower containsString:@"url"] &&
-                    ![lower containsString:@"token"]) {
-                    NSLog(@"[YTMU-AUDIO] %s = %s",
-                          [fullPath UTF8String],
-                          [value UTF8String]);
-                }
-            } else if (depth < 3 &&
-                       ![value isKindOfClass:[NSArray class]] &&
-                       ![value isKindOfClass:[NSDictionary class]]) {
-                YTMUDumpProperties(value, fullPath, depth + 1);
+        if (!value || value == [NSNull null]) continue;
+
+        NSString *fullPath =
+            [path stringByAppendingFormat:@".%@", key];
+
+        if ([value isKindOfClass:[NSNumber class]]) {
+
+            YTMU_AUDIO_LOG(
+                "%{public}s = %{public}lld",
+                [fullPath UTF8String],
+                [value longLongValue]
+            );
+
+        } else if ([value isKindOfClass:[NSString class]]) {
+
+            if ([lower containsString:@"url"] ||
+                [lower containsString:@"token"] ||
+                [lower containsString:@"auth"] ||
+                [lower containsString:@"cookie"]) {
+                continue;
             }
-        } @catch (NSException *exception) {
-            NSLog(@"[YTMU-AUDIO] Cannot inspect %s",
-                  [fullPath UTF8String]);
+
+            NSString *string = value;
+
+            if ([string length] > 120) {
+                string = [string substringToIndex:120];
+            }
+
+            YTMU_AUDIO_LOG(
+                "%{public}s = %{public}s",
+                [fullPath UTF8String],
+                [string UTF8String]
+            );
+
+        } else if (depth < 2 &&
+                   ![value isKindOfClass:[NSArray class]] &&
+                   ![value isKindOfClass:[NSDictionary class]]) {
+
+            YTMUDumpAudioProperties(
+                value,
+                fullPath,
+                depth + 1
+            );
         }
     }
 
@@ -59,25 +99,28 @@ static void YTMUDumpProperties(id object, NSString *path, NSInteger depth) {
 }
 
 static void YTMURunAudioDiagnostics(id data) {
+
     static BOOL didRun = NO;
 
-    @synchronized([NSObject class]) {
+    @synchronized([YTMUAudioDiagnosticsLock class]) {
         if (didRun) return;
         didRun = YES;
     }
 
     @try {
-        id response = [data valueForKey:@"playerResponse"];
-        id playerData = [response valueForKey:@"playerData"];
+
+        id response = YTMUSafeValue(data, @"playerResponse");
+        id playerData = YTMUSafeValue(response, @"playerData");
 
         if (!playerData) {
-            NSLog(@"[YTMU-AUDIO] playerData unavailable");
+            YTMU_AUDIO_LOG("playerData unavailable");
             return;
         }
 
-        NSLog(@"[YTMU-AUDIO] ===== FULL DIAGNOSTICS =====");
+        YTMU_AUDIO_LOG("===== FULL DIAGNOSTICS =====");
 
-        id playerConfig = [playerData valueForKey:@"playerConfig"];
+        id playerConfig =
+            YTMUSafeValue(playerData, @"playerConfig");
 
         NSArray *configNames = @[
             @"audioConfig",
@@ -89,54 +132,71 @@ static void YTMURunAudioDiagnostics(id data) {
         ];
 
         for (NSString *name in configNames) {
-            @try {
-                id config = [playerConfig valueForKey:name];
 
-                NSLog(@"[YTMU-AUDIO] CONFIG %s: %s",
-                      [name UTF8String],
-                      config ? "PRESENT" : "NIL");
+            id config = YTMUSafeValue(playerConfig, name);
 
-                if (config) {
-                    YTMUDumpProperties(config, name, 0);
-                }
-            } @catch (NSException *exception) {
-                NSLog(@"[YTMU-AUDIO] CONFIG %s ERROR",
-                      [name UTF8String]);
+            YTMU_AUDIO_LOG(
+                "CONFIG %{public}s: %{public}s",
+                [name UTF8String],
+                config ? "PRESENT" : "NIL"
+            );
+
+            if (config) {
+                YTMUDumpAudioProperties(config, name, 0);
             }
         }
 
-        id streamingData = [playerData valueForKey:@"streamingData"];
-        id formats = [streamingData valueForKey:@"adaptiveFormatsArray"];
+        id streamingData =
+            YTMUSafeValue(playerData, @"streamingData");
+
+        id formats =
+            YTMUSafeValue(streamingData, @"adaptiveFormatsArray");
 
         if ([formats isKindOfClass:[NSArray class]]) {
-            NSLog(@"[YTMU-AUDIO] TOTAL FORMATS: %lu",
-                  (unsigned long)[formats count]);
+
+            YTMU_AUDIO_LOG(
+                "TOTAL FORMATS: %{public}lu",
+                (unsigned long)[formats count]
+            );
 
             for (id format in formats) {
-                @try {
-                    id itag = [format valueForKey:@"itag"];
-                    id bitrate = [format valueForKey:@"bitrate"];
-                    id averageBitrate = [format valueForKey:@"averageBitrate"];
-                    id mimeType = [format valueForKey:@"mimeType"];
 
-                    NSString *mime = [mimeType isKindOfClass:[NSString class]]
-                        ? mimeType : @"unknown";
+                id itag = YTMUSafeValue(format, @"itag");
+                id bitrate = YTMUSafeValue(format, @"bitrate");
+                id averageBitrate =
+                    YTMUSafeValue(format, @"averageBitrate");
+                id mimeType =
+                    YTMUSafeValue(format, @"mimeType");
 
-                    NSLog(@"[YTMU-AUDIO] FORMAT itag=%s bitrate=%s average=%s mime=%s",
-                          [[itag description] UTF8String],
-                          [[bitrate description] UTF8String],
-                          [[averageBitrate description] UTF8String],
-                          [mime UTF8String]);
-                } @catch (NSException *exception) {
-                    NSLog(@"[YTMU-AUDIO] FORMAT ERROR");
-                }
+                NSString *mime =
+                    [mimeType isKindOfClass:[NSString class]]
+                    ? mimeType : @"unknown";
+
+                YTMU_AUDIO_LOG(
+                    "FORMAT itag=%{public}lld "
+                    "bitrate=%{public}lld "
+                    "average=%{public}lld "
+                    "mime=%{public}s",
+                    (long long)[itag longLongValue],
+                    (long long)[bitrate longLongValue],
+                    (long long)[averageBitrate longLongValue],
+                    [mime UTF8String]
+                );
             }
+        } else {
+            YTMU_AUDIO_LOG("adaptiveFormatsArray unavailable");
         }
 
-        NSLog(@"[YTMU-AUDIO] ===== END DIAGNOSTICS =====");
+        YTMU_AUDIO_LOG("===== END DIAGNOSTICS =====");
 
-    } @catch (NSException *exception) {
-        NSLog(@"[YTMU-AUDIO] DIAGNOSTICS ERROR: %@",
-              exception);
+    }
+    @catch (NSException *exception) {
+
+        YTMU_AUDIO_LOG(
+            "DIAGNOSTICS ERROR: %{public}s",
+            [[exception name] UTF8String]
+        );
     }
 }
+
+#endif
