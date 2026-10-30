@@ -257,10 +257,14 @@ static void YTMULogNetworkRequest(NSURLRequest *request) {
         return;
     }
 
-    NSLog(@"[YTMU-NET] METHOD=%@ HOST=%@ PATH=%@",
-          request.HTTPMethod ?: @"unknown",
-          host,
-          path);
+    os_log_with_type(
+        OS_LOG_DEFAULT,
+        OS_LOG_TYPE_DEFAULT,
+        "[YTMU-NET] METHOD=%{public}@ HOST=%{public}@ PATH=%{public}@",
+        request.HTTPMethod ?: @"unknown",
+        host,
+        path
+    );
 }
 
 %hook NSURLSession
