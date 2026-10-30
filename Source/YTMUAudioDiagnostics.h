@@ -207,4 +207,83 @@ static void YTMURunAudioDiagnostics(id data) {
     }
 }
 
+
+// Discovery only: print property names, never values or streaming URLs.
+static void YTMUDiscoverPlayerProperties(id object, const char *label) {
+    if (!object) return;
+
+    YTMU_AUDIO_LOG(
+        "DISCOVERY %{public}s class=%{public}s",
+        label,
+        class_getName(object_getClass(object))
+    );
+
+    unsigned int printed = 0;
+
+    for (Class cls = object_getClass(object);
+         cls && printed < 45;
+         cls = class_getSuperclass(cls)) {
+
+        unsigned int count = 0;
+        objc_property_t *props = class_copyPropertyList(cls, &count);
+
+        for (unsigned int i = 0; i < count && printed < 45; i++) {
+            const char *raw = property_getName(props[i]);
+            if (!raw) continue;
+
+            NSString *name = [NSString stringWithUTF8String:raw];
+            NSString *lower = name.lowercaseString;
+
+            if ([lower containsString:@"format"] ||
+                [lower containsString:@"audio"] ||
+                [lower containsString:@"quality"] ||
+                [lower containsString:@"stream"] ||
+                [lower containsString:@"track"] ||
+                [lower containsString:@"player"] ||
+                [lower containsString:@"bitrate"] ||
+                [lower containsString:@"adaptive"]) {
+
+                YTMU_AUDIO_LOG(
+                    "DISCOVERY %{public}s property=%{public}s",
+                    label,
+                    raw
+                );
+
+                printed++;
+            }
+        }
+
+        free(props);
+    }
+}
+
+static void YTMUDiscoverPlayerOnce(
+    id viewController,
+    id playbackController
+) {
+    static BOOL didDiscover = NO;
+
+    @synchronized([NSObject class]) {
+        if (didDiscover) return;
+        didDiscover = YES;
+    }
+
+    YTMU_AUDIO_LOG("===== PLAYER PROPERTY DISCOVERY =====");
+
+    YTMUDiscoverPlayerProperties(
+        viewController,
+        "viewController"
+    );
+
+    YTMUDiscoverPlayerProperties(
+        playbackController,
+        "playbackController"
+    );
+
+    YTMU_AUDIO_LOG("===== END PLAYER PROPERTY DISCOVERY =====");
+}
+
+
+
+
 #endif
