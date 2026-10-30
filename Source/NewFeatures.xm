@@ -141,6 +141,39 @@ static BOOL YTMU(NSString *key) {
 
     %orig;
 
+
+    // Audio quality diagnostic
+    @try {
+        id response = self.playerResponse;
+        id playerData = [response valueForKey:@"playerData"];
+        id streamingData = [playerData valueForKey:@"streamingData"];
+        NSArray *formats = [streamingData valueForKey:@"adaptiveFormatsArray"];
+
+        NSLog(@"[YTMU-AUDIO] ===== AUDIO DIAGNOSTIC =====");
+        NSLog(@"[YTMU-AUDIO] Formats count: %lu",
+              (unsigned long)formats.count);
+
+        for (id format in formats) {
+            id mimeType = [format valueForKey:@"mimeType"];
+            id bitrate = [format valueForKey:@"bitrate"];
+            id itag = [format valueForKey:@"itag"];
+            id audioQuality = [format valueForKey:@"audioQuality"];
+
+            NSLog(@"[YTMU-AUDIO] mime=%@ | bitrate=%@ | itag=%@ | quality=%@",
+                  mimeType ?: @"?",
+                  bitrate ?: @"?",
+                  itag ?: @"?",
+                  audioQuality ?: @"?");
+        }
+
+        NSLog(@"[YTMU-AUDIO] ===== END DIAGNOSTIC =====");
+    }
+    @catch (NSException *exception) {
+        NSLog(@"[YTMU-AUDIO] Diagnostic error: %@", exception);
+    }
+
+
+
     if (YTMU(@"YTMUltimateIsEnabled") && YTMU(@"discordRPC")) {
         @try {
             YTPlayerResponse *response = self.playerResponse;
