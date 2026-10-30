@@ -236,3 +236,59 @@ if (audioController) {
         setObject:dict
            forKey:@"YTMUltimate"];
 }
+
+
+
+
+
+
+
+
+#pragma mark - Player Network Diagnostics
+
+static void YTMULogPlayerRequest(NSURLRequest *request) {
+    if (!request) return;
+
+    NSURL *url = request.URL;
+    NSString *path = url.path ?: @"";
+
+    if (![path containsString:@"/youtubei/v1/player"]) {
+        return;
+    }
+
+    NSLog(@"[YTMU-NET] ===== PLAYER REQUEST =====");
+    NSLog(@"[YTMU-NET] METHOD: %@",
+          request.HTTPMethod ?: @"unknown");
+    NSLog(@"[YTMU-NET] HOST: %@",
+          url.host ?: @"unknown");
+    NSLog(@"[YTMU-NET] PATH: %@", path);
+
+    NSLog(@"[YTMU-NET] BODY LENGTH: %lu",
+          (unsigned long)request.HTTPBody.length);
+
+    NSLog(@"[YTMU-NET] ===== END PLAYER REQUEST =====");
+}
+
+%hook NSURLSession
+
+- (NSURLSessionDataTask *)dataTaskWithRequest:(NSURLRequest *)request
+                            completionHandler:(void (^)(NSData *,
+                                                        NSURLResponse *,
+                                                        NSError *))completionHandler {
+
+    YTMULogPlayerRequest(request);
+
+    return %orig;
+}
+
+- (NSURLSessionDataTask *)dataTaskWithRequest:(NSURLRequest *)request {
+
+    YTMULogPlayerRequest(request);
+
+    return %orig;
+}
+
+%end
+
+
+
