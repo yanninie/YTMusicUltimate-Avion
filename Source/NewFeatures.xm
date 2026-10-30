@@ -145,38 +145,35 @@ static BOOL YTMU(NSString *key) {
 
 
 
+    @try {
+        id playerResponse = [data valueForKey:@"playerResponse"];
+        id playerData = [playerResponse valueForKey:@"playerData"];
 
-@try {
-    id playerData = [playerResponse valueForKey:@"playerData"];
+        NSLog(@"[YTMU-AUDIO] ===== PLAYER DATA =====");
 
-    NSLog(@"[YTMU-AUDIO] ===== PLAYER DATA =====");
+        if (playerData) {
+            NSLog(@"[YTMU-AUDIO] playerData class: %@",
+                  NSStringFromClass([playerData class]));
 
-    if (playerData) {
-        NSLog(@"[YTMU-AUDIO] playerData class: %@",
-              NSStringFromClass([playerData class]));
+            unsigned int count = 0;
+            objc_property_t *properties =
+                class_copyPropertyList([playerData class], &count);
 
-        unsigned int count = 0;
-        objc_property_t *properties =
-            class_copyPropertyList([playerData class], &count);
+            for (unsigned int i = 0; i < count; i++) {
+                const char *name = property_getName(properties[i]);
+                NSLog(@"[YTMU-AUDIO] PLAYER DATA PROPERTY: %s", name);
+            }
 
-        for (unsigned int i = 0; i < count; i++) {
-            const char *name = property_getName(properties[i]);
-            NSLog(@"[YTMU-AUDIO] PLAYER DATA PROPERTY: %s", name);
+            free(properties);
+        } else {
+            NSLog(@"[YTMU-AUDIO] playerData is NIL");
         }
 
-        free(properties);
-    } else {
-        NSLog(@"[YTMU-AUDIO] playerData is NIL");
+        NSLog(@"[YTMU-AUDIO] ===== END PLAYER DATA =====");
     }
-
-    NSLog(@"[YTMU-AUDIO] ===== END PLAYER DATA =====");
-}
-@catch (NSException *exception) {
-    NSLog(@"[YTMU-AUDIO] playerData error: %@", exception);
-}
-
-
-
+    @catch (NSException *exception) {
+        NSLog(@"[YTMU-AUDIO] playerData error: %@", exception);
+    }
 
     
 
