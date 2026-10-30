@@ -111,8 +111,7 @@ static void YTMURunAudioDiagnostics(id data) {
     }
 
     @synchronized(lock) {
-        if (didRun) return;
-        didRun = YES;
+    if (didRun) return;
     }
 
     @try {
@@ -123,6 +122,11 @@ static void YTMURunAudioDiagnostics(id data) {
         if (!playerData) {
             YTMU_AUDIO_LOG("playerData unavailable");
             return;
+        }
+
+        @synchronized(lock) {
+            if (didRun) return;
+            didRun = YES;
         }
 
         YTMU_AUDIO_LOG("===== FULL DIAGNOSTICS =====");
