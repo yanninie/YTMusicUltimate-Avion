@@ -147,31 +147,20 @@ static BOOL YTMU(NSString *key) {
 YTMURunAudioDiagnostics(data);
 YTMUDiscoverPlayerOnce(self, controller);
 
-NSArray *audioKeys = @[
-    @"musicKit_playerResponseItem_nowPlayingAudioFormat",
-    @"musicKit_nowPlayingInfoAudioFormat_badging"
-];
+id audioController = YTMUSafeValue(controller, @"audioTrackController");
 
-for (NSString *key in audioKeys) {
-    id value = YTMUSafeValue(controller, key);
+YTMU_AUDIO_LOG(
+    "AUDIO TRACK CONTROLLER class=%{public}s",
+    audioController
+        ? class_getName(object_getClass(audioController))
+        : "nil"
+);
 
-    YTMU_AUDIO_LOG(
-        "SELECTED AUDIO %{public}s class=%{public}s",
-        key.UTF8String,
-        value ? class_getName(object_getClass(value)) : "nil"
+if (audioController) {
+    YTMUDiscoverPlayerProperties(
+        audioController,
+        "audioTrackController"
     );
-
-    if ([value isKindOfClass:[NSNumber class]]) {
-        YTMU_AUDIO_LOG(
-            "SELECTED AUDIO value=%{public}s",
-            [[value description] UTF8String]
-        );
-    } else if ([value isKindOfClass:[NSString class]]) {
-        YTMU_AUDIO_LOG(
-            "SELECTED AUDIO value=%{public}s",
-            [value UTF8String]
-        );
-    }
 }
 
 
