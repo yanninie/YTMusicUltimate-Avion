@@ -5,6 +5,9 @@
 #import <objc/runtime.h>
 #import <os/log.h>
 
+@interface YTMUAudioDiagnosticsLock : NSObject
+@end
+
 #define YTMU_AUDIO_LOG(fmt, ...) \
     os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_DEFAULT, \
                      "[YTMU-AUDIO] " fmt, ##__VA_ARGS__)
