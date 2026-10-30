@@ -243,30 +243,24 @@ if (audioController) {
 
 
 
+#pragma mark - Network Discovery
 
-#pragma mark - Player Network Diagnostics
+static void YTMULogNetworkRequest(NSURLRequest *request) {
+    if (!request || !request.URL) return;
 
-static void YTMULogPlayerRequest(NSURLRequest *request) {
-    if (!request) return;
+    NSString *host = request.URL.host ?: @"";
+    NSString *path = request.URL.path ?: @"";
 
-    NSURL *url = request.URL;
-    NSString *path = url.path ?: @"";
-
-    if (![path containsString:@"/youtubei/v1/player"]) {
+    if (![host containsString:@"youtube"] &&
+        ![host containsString:@"googlevideo"] &&
+        ![host containsString:@"googleapis"]) {
         return;
     }
 
-    NSLog(@"[YTMU-NET] ===== PLAYER REQUEST =====");
-    NSLog(@"[YTMU-NET] METHOD: %@",
-          request.HTTPMethod ?: @"unknown");
-    NSLog(@"[YTMU-NET] HOST: %@",
-          url.host ?: @"unknown");
-    NSLog(@"[YTMU-NET] PATH: %@", path);
-
-    NSLog(@"[YTMU-NET] BODY LENGTH: %lu",
-          (unsigned long)request.HTTPBody.length);
-
-    NSLog(@"[YTMU-NET] ===== END PLAYER REQUEST =====");
+    NSLog(@"[YTMU-NET] METHOD=%@ HOST=%@ PATH=%@",
+          request.HTTPMethod ?: @"unknown",
+          host,
+          path);
 }
 
 %hook NSURLSession
@@ -275,16 +269,25 @@ static void YTMULogPlayerRequest(NSURLRequest *request) {
                             completionHandler:(void (^)(NSData *,
                                                         NSURLResponse *,
                                                         NSError *))completionHandler {
-
-    YTMULogPlayerRequest(request);
-
+    YTMULogNetworkRequest(request);
     return %orig;
 }
 
 - (NSURLSessionDataTask *)dataTaskWithRequest:(NSURLRequest *)request {
+    YTMULogNetworkRequest(request);
+    return %orig;
+}
 
-    YTMULogPlayerRequest(request);
+- (NSURLSessionDataTask *)dataTaskWithURL:(NSURL *)url {
+    YTMULogNetworkRequest([NSURLRequest requestWithURL:url]);
+    return %orig;
+}
 
+- (NSURLSessionDataTask *)dataTaskWithURL:(NSURL *)url
+                       completionHandler:(void (^)(NSData *,
+                                                   NSURLResponse *,
+                                                   NSError *))completionHandler {
+    YTMULogNetworkRequest([NSURLRequest requestWithURL:url]);
     return %orig;
 }
 
