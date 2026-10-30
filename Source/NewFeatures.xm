@@ -6,6 +6,7 @@
 #import "Headers/YTPlayerViewController.h"
 #import "Headers/YTMToastController.h"
 #import "Headers/Localization.h"
+#include "YTMUAudioDiagnostics.xm"
 
 #pragma mark - Helpers
 
@@ -143,41 +144,7 @@ static BOOL YTMU(NSString *key) {
 
 
 
-
-
-
-@try {
-    id playerResponse = [data valueForKey:@"playerResponse"];
-    id playerData = [playerResponse valueForKey:@"playerData"];
-    id playerConfig = [playerData valueForKey:@"playerConfig"];
-
-    NSLog(@"[YTMU-AUDIO] ===== PLAYER CONFIG =====");
-
-    if (playerConfig) {
-        unsigned int count = 0;
-
-        objc_property_t *properties =
-            class_copyPropertyList([playerConfig class], &count);
-
-        for (unsigned int i = 0; i < count; i++) {
-            NSLog(@"[YTMU-AUDIO] CONFIG PROPERTY: %s",
-                  property_getName(properties[i]));
-        }
-
-        free(properties);
-    } else {
-        NSLog(@"[YTMU-AUDIO] playerConfig is NIL");
-    }
-
-    NSLog(@"[YTMU-AUDIO] ===== END PLAYER CONFIG =====");
-}
-@catch (NSException *exception) {
-    NSLog(@"[YTMU-AUDIO] CONFIG ERROR: %@", exception);
-}
-
-
-
-    
+YTMURunAudioDiagnostics(data);    
 
 
 
