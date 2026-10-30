@@ -144,7 +144,8 @@ static BOOL YTMU(NSString *key) {
 
 
 
-YTMURunAudioDiagnostics(data);    
+YTMURunAudioDiagnostics(data);
+YTMUDiscoverPlayerOnce(self, controller);
 
 
 
