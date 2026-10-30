@@ -6,7 +6,7 @@
 #import "Headers/YTPlayerViewController.h"
 #import "Headers/YTMToastController.h"
 #import "Headers/Localization.h"
-#include "YTMUAudioDiagnostics.xm"
+#include "YTMUAudioDiagnostics.h"
 
 #pragma mark - Helpers
 
