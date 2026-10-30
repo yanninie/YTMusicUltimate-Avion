@@ -33,10 +33,6 @@ jobs:
       contents: write
 
     steps:
-      - name: Search network classes
-        run: grep -RniE 'Cronet|PlayerRequest|Innertube|YTPlayerRequest|NetworkRequest' Source Headers 2>/dev/null | head -100 || true
-
-        
       - name: Checkout Main
         uses: actions/checkout@v5
         with:
