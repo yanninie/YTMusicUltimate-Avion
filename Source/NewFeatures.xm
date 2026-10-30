@@ -145,56 +145,46 @@ static BOOL YTMU(NSString *key) {
 
 
 
-    // Audio playback data structure diagnostic
-    @try {
-        NSLog(@"[YTMU-AUDIO] ===== DATA INSPECTION =====");
-        NSLog(@"[YTMU-AUDIO] data class: %@",
-              data ? NSStringFromClass([data class]) : @"nil");
 
-        if (data) {
-            Class cls = [data class];
+// Inspect playerResponse from playback data
+@try {
+    id playerResponse = [data valueForKey:@"playerResponse"];
 
-            while (cls && cls != [NSObject class]) {
-                NSLog(@"[YTMU-AUDIO] CLASS: %@", NSStringFromClass(cls));
+    NSLog(@"[YTMU-AUDIO] ===== PLAYER RESPONSE =====");
+    NSLog(@"[YTMU-AUDIO] response class: %@",
+          playerResponse ? NSStringFromClass([playerResponse class]) : @"nil");
 
-                unsigned int propertyCount = 0;
-                objc_property_t *properties =
-                    class_copyPropertyList(cls, &propertyCount);
+    if (playerResponse) {
+        Class cls = [playerResponse class];
 
-                for (unsigned int i = 0; i < propertyCount; i++) {
-                    NSLog(@"[YTMU-AUDIO] PROPERTY: %s",
-                          property_getName(properties[i]));
-                }
-                free(properties);
+        while (cls && cls != [NSObject class]) {
+            NSLog(@"[YTMU-AUDIO] CLASS: %@", NSStringFromClass(cls));
 
-                unsigned int methodCount = 0;
-                Method *methods = class_copyMethodList(cls, &methodCount);
+            unsigned int count = 0;
+            objc_property_t *properties = class_copyPropertyList(cls, &count);
 
-                for (unsigned int i = 0; i < methodCount; i++) {
-                    SEL selector = method_getName(methods[i]);
-                    NSString *name = NSStringFromSelector(selector);
-
-                    if ([name localizedCaseInsensitiveContainsString:@"stream"] ||
-                        [name localizedCaseInsensitiveContainsString:@"format"] ||
-                        [name localizedCaseInsensitiveContainsString:@"player"] ||
-                        [name localizedCaseInsensitiveContainsString:@"audio"]) {
-                        NSLog(@"[YTMU-AUDIO] METHOD: %@", name);
-                    }
-                }
-                free(methods);
-
-                cls = class_getSuperclass(cls);
+            for (unsigned int i = 0; i < count; i++) {
+                NSLog(@"[YTMU-AUDIO] PROPERTY: %s",
+                      property_getName(properties[i]));
             }
+
+            free(properties);
+            cls = class_getSuperclass(cls);
         }
-
-        NSLog(@"[YTMU-AUDIO] ===== END INSPECTION =====");
-    }
-    @catch (NSException *exception) {
-        NSLog(@"[YTMU-AUDIO] Inspection error: %@", exception);
     }
 
+    NSLog(@"[YTMU-AUDIO] ===== END RESPONSE =====");
+}
+@catch (NSException *exception) {
+    NSLog(@"[YTMU-AUDIO] Response error: %@", exception);
+}
 
 
+
+
+
+
+    
 
 
 
