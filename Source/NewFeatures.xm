@@ -147,7 +147,7 @@ static BOOL YTMU(NSString *key) {
 
 
 @try {
-    id playerData = [response valueForKey:@"playerData"];
+    id playerData = [playerResponse valueForKey:@"playerData"];
 
     NSLog(@"[YTMU-AUDIO] ===== PLAYER DATA =====");
 
