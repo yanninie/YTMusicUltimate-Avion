@@ -5,8 +5,6 @@
 #import <objc/runtime.h>
 #import <os/log.h>
 
-@interface YTMUAudioDiagnosticsLock : NSObject
-@end
 
 #define YTMU_AUDIO_LOG(fmt, ...) \
     os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_DEFAULT, \
@@ -102,10 +100,17 @@ static void YTMUDumpAudioProperties(id object,
 }
 
 static void YTMURunAudioDiagnostics(id data) {
-
+    
     static BOOL didRun = NO;
+    static NSObject *lock = nil;
 
-    @synchronized([YTMUAudioDiagnosticsLock class]) {
+    @synchronized([NSObject class]) {
+        if (!lock) {
+            lock = [NSObject new];
+        }
+    }
+
+    @synchronized(lock) {
         if (didRun) return;
         didRun = YES;
     }
